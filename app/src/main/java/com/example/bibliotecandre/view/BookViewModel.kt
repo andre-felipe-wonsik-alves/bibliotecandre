@@ -1,20 +1,20 @@
 package com.example.bibliotecandre.view
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.bibliotecandre.data.repository.BookRepository
 import com.example.bibliotecandre.domain.model.VolumeInfo
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class BookViewModel: ViewModel() {
     private val bookRepo = BookRepository()
 
-    private val _book = MutableLiveData<VolumeInfo?>() // observable
-    val book: LiveData<VolumeInfo?> = _book
+    private val _book = MutableStateFlow<VolumeInfo?>(null) // observable
+    val book: StateFlow<VolumeInfo?> = _book
 
     fun searchBook(isbn: String){
         bookRepo.getBookByISBN(isbn){
-            bookInfo -> _book.postValue(bookInfo)
+            bookInfo -> _book.value = bookInfo
         }
     }
 }
