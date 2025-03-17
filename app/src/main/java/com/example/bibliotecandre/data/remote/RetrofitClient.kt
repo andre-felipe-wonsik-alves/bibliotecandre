@@ -1,6 +1,5 @@
 package com.example.bibliotecandre.data.remote
 
-import com.example.bibliotecandre.domain.model.GoogleBooksApi
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 

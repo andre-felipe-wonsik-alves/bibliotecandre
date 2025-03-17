@@ -1,5 +1,6 @@
-package com.example.bibliotecandre.domain.model
+package com.example.bibliotecandre.data.remote
 
+import com.example.bibliotecandre.domain.model.BookResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 import retrofit2.Call
