@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,51 +57,42 @@ fun AppNavigation() {
         composable("add_book") {
             AddBookScreen(navController)
         }
+        composable("view_book/{bookId}") { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getString("bookId")?.toIntOrNull() ?: -1
+            ViewBookScreen(navController, bookId)
+        }
     }
 }
 
-
 @Composable
-fun BookSearchScreen(viewModel: BookViewModel = hiltViewModel()) {
-    var isbn by remember { mutableStateOf("") }
-    val book by viewModel.book.collectAsState()
+fun ViewBookScreen(
+    navController: NavController,
+    bookId: Int,
+    viewModel: BookViewModel = hiltViewModel()
+) {
+    val book by viewModel.getBookById(bookId).collectAsState(initial = null)
 
-    Column {
-        // Linha com barra de pesquisa e botão de busca
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+    if (book == null) {
+        Text("Carregando...")
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TextField(
-                value = isbn,
-                onValueChange = { isbn = it },
-                label = { Text("Digite o ISBN") },
-                modifier = Modifier.weight(1f)
-            )
-            Button(onClick = { viewModel.searchBook(isbn) }) {
-                Text("Buscar Livro")
-            }
-        }
+            book?.let { safeBook ->
+                Text("Título: ${safeBook.title}", style = MaterialTheme.typography.headlineSmall)
+                Text("Autor: ${safeBook.authors}", style = MaterialTheme.typography.bodyLarge)
 
-        book?.let {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Button(
-                    onClick = {
-                        book?.let {
-                            val bookEntity = BookEntity(
-                                title = it.title,
-                                authors = it.authors?.joinToString(", "),
-                                thumbnail = it.imageLinks?.thumbnail
-                            )
-                            viewModel.saveBook(bookEntity)
-                            viewModel.getAllBooks()
-                        }
-                    }
-                ) {
-                    Text("Salvar no Banco")
+                safeBook.thumbnail?.let {
+                    AsyncImage(model = it, contentDescription = "Capa do Livro")
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(onClick = { navController.popBackStack() }) {
+                    Text("Voltar")
                 }
             }
         }
@@ -142,7 +134,12 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                     Card(
                         modifier = Modifier
                             .padding(8.dp)
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .clickable {
+                                navController.navigate(
+                                    "view_book/${book.id}"
+                                )
+                            },
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {

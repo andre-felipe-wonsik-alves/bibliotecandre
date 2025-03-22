@@ -5,6 +5,7 @@ import com.example.bibliotecandre.data.local.BookEntity
 import com.example.bibliotecandre.data.remote.RetrofitClient
 import com.example.bibliotecandre.domain.model.BookResponse
 import com.example.bibliotecandre.domain.model.VolumeInfo
+import kotlinx.coroutines.flow.Flow
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -23,6 +24,10 @@ class BookRepository @Inject constructor(
 
     suspend fun deleteBook(book: BookEntity){
         bookDao.deleteBook(book)
+    }
+
+    fun getBookById(bookId: Int): Flow<BookEntity?> {
+        return bookDao.getBookById(bookId);
     }
 
     fun getBookByISBN(isbn: String, callback: (VolumeInfo?) -> Unit){ // unit == void type

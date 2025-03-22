@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,6 +29,10 @@ class BookViewModel @Inject constructor(private val bookRepo: BookRepository) : 
             val books = bookRepo.getBooks()
             callback(books)
         }
+    }
+
+    fun getBookById(id: Int): Flow<BookEntity?> {
+        return bookRepo.getBookById(id)
     }
 
     fun deleteBook(book: BookEntity) {

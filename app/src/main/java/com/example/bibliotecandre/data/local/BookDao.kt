@@ -1,5 +1,6 @@
 package com.example.bibliotecandre.data.local
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookDao {
@@ -8,6 +9,9 @@ interface BookDao {
 
     @Query("SELECT * FROM books")
     suspend fun getAllBooks(): List<BookEntity>
+
+    @Query("SELECT * FROM books WHERE :bookId = books.id")
+    fun getBookById(bookId: Int): Flow<BookEntity?>
 
     @Delete
     suspend fun deleteBook(book: BookEntity)
