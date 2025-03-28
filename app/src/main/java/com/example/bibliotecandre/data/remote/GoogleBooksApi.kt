@@ -10,4 +10,9 @@ interface GoogleBooksApi {
     fun searchBookByISBN(
         @Query("q") query: String // query usada
     ): Call<BookResponse> // validacao
+
+    @GET("volumes")
+    fun searchBookByTitle(
+        @Query("q") query: String
+    ): Call<BookResponse>
 }

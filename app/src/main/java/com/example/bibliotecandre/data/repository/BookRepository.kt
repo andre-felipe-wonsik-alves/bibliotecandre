@@ -1,5 +1,6 @@
 package com.example.bibliotecandre.data.repository
 
+import android.util.Log
 import com.example.bibliotecandre.data.local.BookDao
 import com.example.bibliotecandre.data.local.BookEntity
 import com.example.bibliotecandre.data.remote.RetrofitClient
@@ -26,12 +27,16 @@ class BookRepository @Inject constructor(
         bookDao.deleteBook(book)
     }
 
+    suspend fun updateBookRating(bookId: Int, newRating: Int) {
+        bookDao.updateRating(bookId, newRating)
+    }
+
     fun getBookById(bookId: Int): Flow<BookEntity?> {
         return bookDao.getBookById(bookId);
     }
 
     fun getBookByISBN(isbn: String, callback: (VolumeInfo?) -> Unit){ // unit == void type
-        val res = RetrofitClient.api.searchBookByISBN("isbn:$isbn")
+        val res = RetrofitClient.api.searchBookByISBN(isbn)
 
         res.enqueue(object: Callback<BookResponse>{
             override fun onResponse(
@@ -40,7 +45,6 @@ class BookRepository @Inject constructor(
             ) {
                 if(response.isSuccessful){
                     val bookInfo = response.body()?.items?.firstOrNull()?.volumeInfo
-                    print("VALOR: $bookInfo")
                     callback(bookInfo)
                 } else {
                     callback(null)
@@ -52,4 +56,10 @@ class BookRepository @Inject constructor(
             }
         })
     }
+
+    fun getBookByTitle(title: String, callback: (VolumeInfo?) -> Unit){
+        val res = RetrofitClient.api.searchBookByTitle("title:$title")
+    }
+
+
 }

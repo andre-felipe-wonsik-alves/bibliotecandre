@@ -1,6 +1,7 @@
 package com.example.bibliotecandre
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,18 +9,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.bibliotecandre.view.BookViewModel
 import coil.compose.AsyncImage
 import com.example.bibliotecandre.data.local.BookEntity
@@ -71,6 +71,13 @@ fun ViewBookScreen(
     viewModel: BookViewModel = hiltViewModel()
 ) {
     val book by viewModel.getBookById(bookId).collectAsState(initial = null)
+    val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
+    var rating by remember { mutableStateOf(0) }
+
+    LaunchedEffect(book) {
+        book?.let { rating = it.rating }
+    }
 
     if (book == null) {
         Text("Carregando...")
@@ -82,22 +89,104 @@ fun ViewBookScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             book?.let { safeBook ->
-                Text("Título: ${safeBook.title}", style = MaterialTheme.typography.headlineSmall)
-                Text("Autor: ${safeBook.authors}", style = MaterialTheme.typography.bodyLarge)
+                Text("${safeBook.title}", style = MaterialTheme.typography.headlineSmall)
+                Text("${safeBook.authors}", style = MaterialTheme.typography.bodyLarge)
+                Text("${safeBook.publisher}", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Data de Publicação: ${safeBook.publishedDate}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    "Descrição: ${safeBook.description}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
 
                 safeBook.thumbnail?.let {
-                    AsyncImage(model = it, contentDescription = "Capa do Livro")
+                    val fixedThumbnailUrl = it.replace("http:", "https:")
+                    AsyncImage(
+                        model = fixedThumbnailUrl,
+                        contentDescription = "Capa do Livro",
+                        modifier = Modifier
+                            .width(250.dp)
+                            .height(300.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Button(onClick = { navController.popBackStack() }) {
-                    Text("Voltar")
+                // Avaliação por estrelas
+                Text("Avaliação:")
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    for (i in 1..5) {
+                        Icon(
+                            imageVector = if (i <= rating) Icons.Default.Star else Icons.Outlined.Star,
+                            contentDescription = "Avaliação de $i estrelas",
+                            tint = if (i <= rating) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clickable {
+                                    rating = i
+                                    viewModel.updateBookRating(safeBook.id, i) // Atualiza no banco
+                                    Toast.makeText(context, "Avaliação salva!", Toast.LENGTH_SHORT).show()
+                                }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(onClick = { navController.popBackStack() }) {
+                        Text("Voltar")
+                    }
+
+                    Button(
+                        onClick = { showDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Remover")
+                    }
+                }
+
+                if (showDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDialog = false },
+                        title = { Text("Confirmação") },
+                        text = {
+                            Text("Deseja mesmo remover do banco?\nEssa ação é irreversível.")
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    book?.let {
+                                        viewModel.deleteBook(it)
+                                        Toast.makeText(context, "Livro removido!", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack("book_list", inclusive = false)
+                                    }
+                                    showDialog = false
+                                }
+                            ) {
+                                Text("Sim, desejo")
+                            }
+                        },
+                        dismissButton = {
+                            Button(
+                                onClick = { showDialog = false }
+                            ) {
+                                Text("Não")
+                            }
+                        }
+                    )
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun BookListScreen(navController: NavController, viewModel: BookViewModel = hiltViewModel()) {
@@ -133,7 +222,6 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                 items(books) { book ->
                     Card(
                         modifier = Modifier
-                            .padding(8.dp)
                             .fillMaxWidth()
                             .clickable {
                                 navController.navigate(
@@ -144,10 +232,17 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
                             book.thumbnail?.let { url ->
-                                AsyncImage(model = url, contentDescription = "Capa do Livro")
+                                val fixedThumbnailUrl = url.replace("http:", "https:")
+                                AsyncImage(
+                                    model = fixedThumbnailUrl,
+                                    contentDescription = "Capa do Livro",
+                                    modifier = Modifier
+                                        .width(250.dp)
+                                        .fillMaxWidth()
+                                        .aspectRatio(0.75f)
+                                        .height(300.dp)
+                                )
                             }
-                            Text("Título: ${book.title}")
-                            Text("Autor: ${book.authors}")
                         }
                     }
                 }
@@ -186,26 +281,39 @@ fun AddBookScreen(navController: NavController, viewModel: BookViewModel = hiltV
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        book?.let {
-            Text("Título: ${it.title}")
-            it.authors?.forEach { author -> Text("Autor: $author") }
-            it.imageLinks?.thumbnail?.let { url ->
-                AsyncImage(model = url, contentDescription = "Capa do Livro")
-            }
+        Card {
+            book?.let {
+                Text("${it.title}")
+                it.authors?.forEach { author -> Text(author) }
+                it.imageLinks?.thumbnail?.let { url ->
+                    val fixedThumbnailUrl = url.replace("http:", "https:")
+                    AsyncImage(
+                        model = fixedThumbnailUrl,
+                        contentDescription = "Capa do Livro",
+                        modifier = Modifier
+                            .width(250.dp)
+                            .height(300.dp)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = {
-                val bookEntity = BookEntity(
-                    title = it.title,
-                    authors = it.authors?.joinToString(", "),
-                    thumbnail = it.imageLinks?.thumbnail
-                )
-                viewModel.saveBook(bookEntity)
-                Toast.makeText(context, "Livro salvo com sucesso!", Toast.LENGTH_SHORT).show()
-                navController.popBackStack() // Fecha a tela e volta para a lista
-            }) {
-                Text("Salvar Livro")
+                Button(onClick = {
+                    val bookEntity = BookEntity(
+                        title = it.title,
+                        authors = it.authors?.joinToString(", "),
+                        publisher = it.publisher,
+                        publishedDate = it.publishedDate,
+                        description = it.description,
+                        pageCount = it.pageCount,
+                        thumbnail = it.imageLinks?.thumbnail
+                    )
+                    viewModel.saveBook(bookEntity)
+                    Toast.makeText(context, "Livro salvo com sucesso!", Toast.LENGTH_SHORT).show()
+                    navController.popBackStack() // Fecha a tela e volta para a lista
+                }) {
+                    Text("Salvar Livro")
+                }
             }
         }
     }

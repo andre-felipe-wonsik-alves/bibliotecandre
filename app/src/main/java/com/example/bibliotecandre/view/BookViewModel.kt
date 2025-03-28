@@ -54,4 +54,10 @@ class BookViewModel @Inject constructor(private val bookRepo: BookRepository) : 
             books.value = bookRepo.getBooks()
         }
     }
+
+    fun updateBookRating(bookId: Int, newRating: Int) {
+        viewModelScope.launch {
+            bookRepo.updateBookRating(bookId, newRating)
+        }
+    }
 }
