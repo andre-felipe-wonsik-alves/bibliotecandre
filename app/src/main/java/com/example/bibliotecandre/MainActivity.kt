@@ -1,7 +1,6 @@
 package com.example.bibliotecandre
 
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -85,8 +84,10 @@ fun ViewBookScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(16.dp, bottom = 50.dp)
+                .imePadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+
         ) {
             book?.let { safeBook ->
                 Text("${safeBook.title}", style = MaterialTheme.typography.headlineSmall)
@@ -130,15 +131,15 @@ fun ViewBookScreen(
                                 .clickable {
                                     rating = i
                                     viewModel.updateBookRating(safeBook.id, i) // Atualiza no banco
-                                    Toast.makeText(context, "Avaliação salva!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Avaliação salva!", Toast.LENGTH_SHORT)
+                                        .show()
                                 }
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
                     Button(onClick = { navController.popBackStack() }) {
                         Text("Voltar")
                     }
@@ -163,7 +164,11 @@ fun ViewBookScreen(
                                 onClick = {
                                     book?.let {
                                         viewModel.deleteBook(it)
-                                        Toast.makeText(context, "Livro removido!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Livro removido!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                         navController.popBackStack("book_list", inclusive = false)
                                     }
                                     showDialog = false
@@ -181,16 +186,16 @@ fun ViewBookScreen(
                         }
                     )
                 }
+
             }
         }
     }
 }
 
 
-
 @Composable
 fun BookListScreen(navController: NavController, viewModel: BookViewModel = hiltViewModel()) {
-    val books by viewModel.books.collectAsState()
+    val books by viewModel.savedBooks.collectAsState()
 
     Column(modifier = Modifier.padding(16.dp)) {
         Row(
@@ -254,7 +259,8 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
 @Composable
 fun AddBookScreen(navController: NavController, viewModel: BookViewModel = hiltViewModel()) {
     var isbn by remember { mutableStateOf("") }
-    val book by viewModel.book.collectAsState()
+    var title by remember { mutableStateOf("") }
+    val books by viewModel.books.collectAsState()
     val context = LocalContext.current
 
     Column(
@@ -267,52 +273,86 @@ fun AddBookScreen(navController: NavController, viewModel: BookViewModel = hiltV
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Campo para ISBN
         TextField(
             value = isbn,
             onValueChange = { isbn = it },
             label = { Text("Digite o ISBN") }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Button(onClick = { viewModel.searchBook(isbn) }) {
-            Text("Buscar Livro")
+            Text("Buscar por ISBN")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card {
-            book?.let {
-                Text("${it.title}")
-                it.authors?.forEach { author -> Text(author) }
-                it.imageLinks?.thumbnail?.let { url ->
-                    val fixedThumbnailUrl = url.replace("http:", "https:")
-                    AsyncImage(
-                        model = fixedThumbnailUrl,
-                        contentDescription = "Capa do Livro",
+        // Campo para título
+        TextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Digite o título") }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(onClick = { viewModel.searchBooksByTitle(title) }) {
+            Text("Buscar por Título")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (books.isEmpty()) {
+            Text("Nenhum resultado encontrado.", style = MaterialTheme.typography.bodyMedium)
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(1), // Exibir 2 colunas
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(10.dp),
+            ) {
+                items(books) { book ->
+                    Card(
                         modifier = Modifier
-                            .width(250.dp)
-                            .height(300.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(onClick = {
-                    val bookEntity = BookEntity(
-                        title = it.title,
-                        authors = it.authors?.joinToString(", "),
-                        publisher = it.publisher,
-                        publishedDate = it.publishedDate,
-                        description = it.description,
-                        pageCount = it.pageCount,
-                        thumbnail = it.imageLinks?.thumbnail
-                    )
-                    viewModel.saveBook(bookEntity)
-                    Toast.makeText(context, "Livro salvo com sucesso!", Toast.LENGTH_SHORT).show()
-                    navController.popBackStack() // Fecha a tela e volta para a lista
-                }) {
-                    Text("Salvar Livro")
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                            .clickable {
+                                val bookEntity = BookEntity(
+                                    title = book.title,
+                                    authors = book.authors?.joinToString(", "),
+                                    publisher = book.publisher,
+                                    publishedDate = book.publishedDate,
+                                    description = book.description,
+                                    pageCount = book.pageCount,
+                                    thumbnail = book.imageLinks?.thumbnail
+                                )
+                                viewModel.saveBook(bookEntity)
+                                Toast.makeText(
+                                    context,
+                                    "Livro salvo com sucesso!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                navController.popBackStack()
+                            },
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(
+                                book.title ?: "Erro ao carregar",
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                            book.authors?.forEach { author -> Text(author) }
+                            book.imageLinks?.thumbnail?.let { url ->
+                                AsyncImage(
+                                    model = url.replace("http:", "https:"),
+                                    contentDescription = "Capa do Livro",
+                                    modifier = Modifier
+                                        .width(100.dp)
+                                        .height(150.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

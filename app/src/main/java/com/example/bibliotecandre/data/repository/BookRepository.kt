@@ -35,7 +35,7 @@ class BookRepository @Inject constructor(
         return bookDao.getBookById(bookId);
     }
 
-    fun getBookByISBN(isbn: String, callback: (VolumeInfo?) -> Unit){ // unit == void type
+    fun getBookByISBN(isbn: String, callback: (List<VolumeInfo>) -> Unit){ // unit == void type
         val res = RetrofitClient.api.searchBookByISBN(isbn)
 
         res.enqueue(object: Callback<BookResponse>{
@@ -44,22 +44,40 @@ class BookRepository @Inject constructor(
                 response: Response<BookResponse>
             ) {
                 if(response.isSuccessful){
-                    val bookInfo = response.body()?.items?.firstOrNull()?.volumeInfo
-                    callback(bookInfo)
+                    Log.d("REQ_ISBN", response.body()?.toString() ?: "No body")
+                    val booksInfo = response.body()?.items?.map { it.volumeInfo } ?: emptyList()
+                    callback(booksInfo)
                 } else {
-                    callback(null)
+                    callback(emptyList())
                 }
             }
 
             override fun onFailure(call: Call<BookResponse>, t: Throwable){
-                callback(null)
+                callback(emptyList())
             }
         })
     }
 
-    fun getBookByTitle(title: String, callback: (VolumeInfo?) -> Unit){
-        val res = RetrofitClient.api.searchBookByTitle("title:$title")
+    fun getBooksByTitle(title: String, callback: (List<VolumeInfo>) -> Unit) {
+        val res = RetrofitClient.api.searchBookByTitle(title)
+
+        res.enqueue(object : Callback<BookResponse> {
+            override fun onResponse(call: Call<BookResponse>, response: Response<BookResponse>) {
+                if (response.isSuccessful) {
+                    Log.d("REQ_TITLE", response.body()?.toString() ?: "No body")
+                    val booksInfo = response.body()?.items?.map { it.volumeInfo } ?: emptyList()
+                    callback(booksInfo)
+                } else {
+                    callback(emptyList())
+                }
+            }
+
+            override fun onFailure(call: Call<BookResponse>, t: Throwable) {
+                callback(emptyList())
+            }
+        })
     }
+
 
 
 }

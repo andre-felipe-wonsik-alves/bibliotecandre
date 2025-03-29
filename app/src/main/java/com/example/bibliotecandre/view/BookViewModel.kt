@@ -16,6 +16,10 @@ import javax.inject.Inject
 class BookViewModel @Inject constructor(private val bookRepo: BookRepository) : ViewModel() {
     private val _book = MutableStateFlow<VolumeInfo?>(null) // observable
     val book: StateFlow<VolumeInfo?> = _book
+    private val _books = MutableStateFlow<List<VolumeInfo>>(emptyList())
+    val books: StateFlow<List<VolumeInfo>>  = _books
+    val savedBooks = MutableStateFlow<List<BookEntity>>(emptyList())
+
 
     fun saveBook(book: BookEntity) {
         viewModelScope.launch {
@@ -43,15 +47,20 @@ class BookViewModel @Inject constructor(private val bookRepo: BookRepository) : 
 
     fun searchBook(isbn: String) {
         bookRepo.getBookByISBN(isbn) { bookInfo ->
-            _book.value = bookInfo
+            _books.value = bookInfo
         }
     }
 
-    val books = MutableStateFlow<List<BookEntity>>(emptyList())
+    fun searchBooksByTitle(title: String) {
+        bookRepo.getBooksByTitle(title) { booksInfo ->
+            _books.value = booksInfo
+        }
+    }
+
 
     fun getAllBooks() {
         viewModelScope.launch {
-            books.value = bookRepo.getBooks()
+            savedBooks.value = bookRepo.getBooks()
         }
     }
 
