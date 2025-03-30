@@ -20,18 +20,10 @@ class BookViewModel @Inject constructor(private val bookRepo: BookRepository) : 
     val books: StateFlow<List<VolumeInfo>>  = _books
     val savedBooks = MutableStateFlow<List<BookEntity>>(emptyList())
 
-
     fun saveBook(book: BookEntity) {
         viewModelScope.launch {
             bookRepo.saveBook(book)
             getAllBooks()
-        }
-    }
-
-    fun getBooks(callback: (List<BookEntity>) -> Unit) {
-        viewModelScope.launch {
-            val books = bookRepo.getBooks()
-            callback(books)
         }
     }
 
@@ -46,8 +38,19 @@ class BookViewModel @Inject constructor(private val bookRepo: BookRepository) : 
     }
 
     fun searchBook(isbn: String) {
-        bookRepo.getBookByISBN(isbn) { bookInfo ->
-            _books.value = bookInfo
+        viewModelScope.launch {
+            val combinedBooks = mutableListOf<VolumeInfo>()
+
+            bookRepo.getBooksOpenLibraryApi(isbn) { openLibraryBooks ->
+                if (openLibraryBooks.isNotEmpty()) {
+                    combinedBooks.add(openLibraryBooks.first())
+                }
+
+                bookRepo.getBooksGoogleApi(isbn) { googleBooks ->
+                    combinedBooks.addAll(googleBooks)
+                    _books.value = combinedBooks
+                }
+            }
         }
     }
 

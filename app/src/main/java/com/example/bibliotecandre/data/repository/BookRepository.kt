@@ -5,6 +5,8 @@ import com.example.bibliotecandre.data.local.BookDao
 import com.example.bibliotecandre.data.local.BookEntity
 import com.example.bibliotecandre.data.remote.RetrofitClient
 import com.example.bibliotecandre.domain.model.BookResponse
+import com.example.bibliotecandre.domain.model.ImageLinks
+import com.example.bibliotecandre.domain.model.OpenLibraryResponse
 import com.example.bibliotecandre.domain.model.VolumeInfo
 import kotlinx.coroutines.flow.Flow
 import retrofit2.Call
@@ -35,7 +37,7 @@ class BookRepository @Inject constructor(
         return bookDao.getBookById(bookId);
     }
 
-    fun getBookByISBN(isbn: String, callback: (List<VolumeInfo>) -> Unit){ // unit == void type
+    fun getBooksGoogleApi(isbn: String, callback: (List<VolumeInfo>) -> Unit){ // unit == void type
         val res = RetrofitClient.api.searchBookByISBN(isbn)
 
         res.enqueue(object: Callback<BookResponse>{
@@ -44,7 +46,7 @@ class BookRepository @Inject constructor(
                 response: Response<BookResponse>
             ) {
                 if(response.isSuccessful){
-                    Log.d("REQ_ISBN", response.body()?.toString() ?: "No body")
+                    Log.d("REQ_GOOGLE_API", response.body()?.toString() ?: "No body")
                     val booksInfo = response.body()?.items?.map { it.volumeInfo } ?: emptyList()
                     callback(booksInfo)
                 } else {
@@ -57,6 +59,53 @@ class BookRepository @Inject constructor(
             }
         })
     }
+
+    fun getBooksOpenLibraryApi(isbn: String, callback: (List<VolumeInfo>) -> Unit) {
+        val res = RetrofitClient.openLibraryApi.searchBookByISBNOpenLibrary("ISBN:$isbn")
+
+        res.enqueue(object : Callback<Map<String, Any>> {
+            override fun onResponse(
+                call: Call<Map<String, Any>>,
+                response: Response<Map<String, Any>>
+            ) {
+                if (response.isSuccessful) {
+                    val bookInfo = response.body()?.get("ISBN:$isbn") as? Map<String, Any>
+                    val volumeInfo = bookInfo?.let {
+                        VolumeInfo(
+                            title = it["title"] as? String,
+                            authors = (it["authors"] as? List<Map<String, String>>)
+                                ?.mapNotNull { author -> author["name"] }, // Correção aqui
+                            publisher = (it["publishers"] as? List<Map<String, String>>)
+                                ?.mapNotNull { publisher -> publisher["name"] }
+                                ?.joinToString(", "),
+                            publishedDate = it["publish_date"] as? String,
+                            description = (it["description"] as? Map<String, String>)?.get("value") ?: it["description"] as? String,
+                            pageCount = it["number_of_pages"] as? Int,
+                            imageLinks = (it["cover"] as? Map<String, Any>)?.let { cover ->
+                                val coverId = cover["id"] as? Int
+                                coverId?.let { id ->
+                                    ImageLinks(
+                                        smallThumbnail = "https://covers.openlibrary.org/b/id/$id-S.jpg",
+                                        thumbnail = "https://covers.openlibrary.org/b/id/$id-L.jpg"
+                                    )
+                                }
+                            }
+                        )
+                    }
+                    Log.d("REQ_OPEN_BOOKS_API", volumeInfo.toString())
+                    callback(volumeInfo?.let { listOf(it) } ?: emptyList())
+                } else {
+                    callback(emptyList())
+                }
+            }
+
+            override fun onFailure(call: Call<Map<String, Any>>, t: Throwable) {
+                callback(emptyList())
+            }
+        })
+    }
+
+
 
     fun getBooksByTitle(title: String, callback: (List<VolumeInfo>) -> Unit) {
         val res = RetrofitClient.api.searchBookByTitle(title)

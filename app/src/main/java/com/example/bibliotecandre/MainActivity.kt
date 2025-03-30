@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.runtime.*
@@ -234,10 +235,10 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Bibliotecandre", style = MaterialTheme.typography.headlineSmall)
-                Button(onClick = { navController.navigate("add_book/0") }) {
-                    Text("Adicionar Livro")
-                }
+                Text(text = "Bibliotecandre", style = MaterialTheme.typography.headlineMedium)
+//                Button(onClick = { navController.navigate("add_book/0") }) {
+//                    Text("Adicionar Livro")
+//                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -254,7 +255,9 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2), // Exibir 2 colunas
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+
                 ) {
                     items(books) { book ->
                         Card(
@@ -296,6 +299,17 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
             contentColor = MaterialTheme.colorScheme.background
         ) {
             Icon(Icons.Default.Add, contentDescription = "Scan ISBN")
+        }
+        FloatingActionButton(
+            onClick = { navController.navigate("add_book/0") },
+            modifier = Modifier
+                .padding(16.dp)
+                .padding(bottom=120.dp)
+                .align(Alignment.BottomStart),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.background
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Adicionar livro")
         }
     }
 }
