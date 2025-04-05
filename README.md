@@ -1,54 +1,58 @@
-# 📚 Catálogo Virtual de Livros
+# 📚 Bibliotecandre
 
-Um aplicativo Android simples para organizar e catalogar sua biblioteca pessoal, permitindo adicionar livros, avaliar leituras e criar uma lista de desejos.
+**Bibliotecandre** é um aplicativo pessoal para organizar e visualizar os livros que você já leu ou deseja ler. Desenvolvido em Jetpack Compose, é leve, rápido e funciona offline, utilizando banco de dados local.
 
 ## ✨ Funcionalidades
-- Adicionar livros manualmente ou via ISBN
-- Consultar informações automáticas via API (Open Library ou Google Books)
-- Avaliar livros lidos
-- Criar uma lista de desejos
-- Interface moderna usando Jetpack Compose
-- Banco de dados local via Room Database
 
-## 🛠️ Tecnologias Utilizadas
-- **Linguagem:** Kotlin
-- **UI:** Jetpack Compose
-- **Banco de Dados:** Room (SQLite)
-- **Consumo de API:** Retrofit
-- **IDE:** Android Studio
+### ✅ Listagem de livros salvos
+- Exibe os livros salvos em um **grid responsivo com 2 colunas**.
+- Cada item apresenta a **capa do livro** (ou um retângulo substituto caso não haja thumbnail).
+- Os livros são clicáveis e direcionam para uma tela de visualização detalhada.
 
-## ✅ Como Instalar e Executar
-1. **Clone o repositório:**
-   ```bash
-   git clone https://github.com/seu-usuario/catalogo-livros.git
-   cd catalogo-livros
-   ```
-2. **Abra o projeto no Android Studio**
-3. **Compile e execute em um emulador ou dispositivo real**
+### 🔍 Barra de pesquisa
+- Barra de pesquisa com design circular e placeholder dinâmico:
+  > "Pesquise algo entre os X livros que você já leu!"
+- Permite filtrar os livros listados por título ou autor.
+- Input otimizado com altura reduzida para manter a estética clean.
 
-## 📈 Estrutura do Projeto
-```
-/catalogo-livros
-│-- app/
-│   │-- src/main/
-│   │   │-- java/com/seuusuario/catalogo/
-│   │   │   │-- ui/  # Telas e componentes UI
-│   │   │   │-- data/  # Models e banco de dados Room
-│   │   │   │-- network/  # Consumo de API (ISBN)
-│   │   │   │-- viewmodel/  # Lógica de negócio e estados da UI
-│   │-- AndroidManifest.xml
-│-- README.md
-```
+### 📈 Contador de livros
+- Exibe a **quantidade total de livros salvos** no banco de dados.
+- O valor é utilizado dinamicamente no placeholder da barra de busca.
 
-## 🌟 Melhorias Futuras
-- Suporte a exportação de dados
-- Sincronização em nuvem (Google Drive)
-- Sugestão de livros baseada no histórico
+### ➕ Adicionar livros
+- Botão flutuante para adicionar manualmente um novo livro.
 
-## 🚀 Contribuição
-Este é um projeto pessoal, mas se desejar sugerir melhorias, abra um **Issue** ou um **Pull Request**.
+### 📷 Escanear ISBN
+- Botão flutuante com acesso direto ao **scanner de código de barras (ISBN)** via Google Lens.
+- Redireciona para busca automática na Open Library ou Google Books.
 
-## 📝 Licença
-Este projeto é de uso pessoal e não possui uma licença específica.
+### 📖 Visualização de livro
+- Tela com detalhes completos do livro:
+  - Capa (ou retângulo substituto)
+  - Título, autor, editora, data de publicação
+  - Descrição com box rolável, caso seja longa
+  - Avaliação em estrelas (1 a 5), com persistência no banco local
+
+### 🗑️ Remover livro
+- Botão para deletar o livro com **alerta de confirmação**.
 
 ---
+
+## 🛠️ Tecnologias
+
+- **Jetpack Compose**
+- **Room (SQLite)**
+- **Hilt (DI)**
+- **Kotlin**
+- **Coil (AsyncImage)**
+- **Navigation Compose**
+
+---
+
+## 📱 Uso
+
+O app é ideal para leitura em tablets Android. Pode ser utilizado completamente offline após os livros serem adicionados.
+
+---
+
+# Feito como objeto de estudo, portanto, sujeito a erros!
