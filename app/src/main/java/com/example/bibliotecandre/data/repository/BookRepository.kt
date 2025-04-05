@@ -71,6 +71,7 @@ class BookRepository @Inject constructor(
                 if (response.isSuccessful) {
                     val bookInfo = response.body()?.get("ISBN:$isbn") as? Map<String, Any>
                     val volumeInfo = bookInfo?.let {
+                        Log.d("COVER_OPEN_LIBRARY", it["cover"].toString())
                         VolumeInfo(
                             title = it["title"] as? String,
                             authors = (it["authors"] as? List<Map<String, String>>)
@@ -81,14 +82,11 @@ class BookRepository @Inject constructor(
                             publishedDate = it["publish_date"] as? String,
                             description = (it["description"] as? Map<String, String>)?.get("value") ?: it["description"] as? String,
                             pageCount = it["number_of_pages"] as? Int,
-                            imageLinks = (it["cover"] as? Map<String, Any>)?.let { cover ->
-                                val coverId = cover["id"] as? Int
-                                coverId?.let { id ->
-                                    ImageLinks(
-                                        smallThumbnail = "https://covers.openlibrary.org/b/id/$id-S.jpg",
-                                        thumbnail = "https://covers.openlibrary.org/b/id/$id-L.jpg"
-                                    )
-                                }
+                            imageLinks = (it["cover"] as? Map<String, String>)?.let { cover ->
+                                ImageLinks(
+                                    smallThumbnail = cover["small"],
+                                    thumbnail = cover["large"] // ou "medium", dependendo do tamanho desejado
+                                )
                             }
                         )
                     }

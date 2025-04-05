@@ -18,22 +18,31 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -51,7 +60,16 @@ import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -114,115 +132,177 @@ fun ViewBookScreen(
     if (book == null) {
         Text("Carregando...")
     } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp, bottom = 50.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Spacer(modifier = Modifier.height(24.dp))
+        Box(modifier = Modifier.fillMaxSize()) {
+            val circleColor = MaterialTheme.colorScheme.primary
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val canvasWidth = size.width
+                val canvasHeight = size.height
 
-            ) {
-            book?.let { safeBook ->
-                Text("${safeBook.title}", style = MaterialTheme.typography.headlineSmall)
-                Text("${safeBook.authors}", style = MaterialTheme.typography.bodyLarge)
-                Text("${safeBook.publisher}", style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    "Data de Publicação: ${safeBook.publishedDate}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    "Descrição: ${safeBook.description}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-
-                safeBook.thumbnail?.let {
-                    val fixedThumbnailUrl = it.replace("http:", "https:")
-                    AsyncImage(
-                        model = fixedThumbnailUrl,
-                        contentDescription = "Capa do Livro",
-                        modifier = Modifier
-                            .width(250.dp)
-                            .height(300.dp)
+                drawCircle(
+                    color = circleColor,
+                    radius = canvasWidth * 1.2f,
+                    center = Offset(
+                        x = canvasWidth / 2,
+                        y = canvasHeight * 0.75f
                     )
-                }
+                )
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .navigationBarsPadding(), // padding para barra inferior
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                book?.let { safeBook ->
 
-                // Avaliação por estrelas
-                Text("Avaliação:")
-                Row(
-                    modifier = Modifier.padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    for (i in 1..5) {
-                        Icon(
-                            imageVector = if (i <= rating) Icons.Default.Star else Icons.Outlined.Star,
-                            contentDescription = "Avaliação de $i estrelas",
-                            tint = if (i <= rating) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    // Capa com retângulo de fundo
+                    safeBook.thumbnail?.let {
+                        val fixedThumbnailUrl = it.replace("http:", "https:")
+                        Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .clickable {
-                                    rating = i
-                                    viewModel.updateBookRating(safeBook.id, i) // Atualiza no banco
-                                    Toast.makeText(context, "Avaliação salva!", Toast.LENGTH_SHORT)
-                                        .show()
-                                }
+                                .background(color=MaterialTheme.colorScheme.secondary, shape = RoundedCornerShape(5.dp))
+                                .padding(4.dp)
+                                .height(350.dp)
+                        ) {
+                            AsyncImage(
+                                model = fixedThumbnailUrl,
+                                contentDescription = "Capa do Livro",
+                                modifier = Modifier
+                                    .width(250.dp)
+                                    .height(300.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(safeBook.title ?: "Sem título", style = MaterialTheme.typography.headlineSmall)
+                    Text(safeBook.authors ?: "Sem autor", style = MaterialTheme.typography.bodyLarge)
+                    Text(safeBook.publisher ?: "Sem editora", style = MaterialTheme.typography.bodyLarge)
+                    Text("${safeBook.publishedDate}", style = MaterialTheme.typography.bodyLarge)
+                    val descriptionText = safeBook.description ?: "Sem descrição"
+                    val wordCount = descriptionText.trim().split("\\s+".toRegex()).size
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (wordCount > 80) {
+                        Box(
+                            modifier = Modifier
+                                .height(200.dp)
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .background(
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    shape = RoundedCornerShape(8.dp),
+                                )
+                                .padding(10.dp)
+                        ) {
+                            Text(
+                                text = descriptionText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Justify
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = descriptionText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Justify
                         )
                     }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Button(onClick = { navController.popBackStack() }) {
-                        Text("Voltar")
-                    }
 
-                    Button(
-                        onClick = { showDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text("Avaliação:")
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("Remover")
-                    }
-                }
-
-                if (showDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showDialog = false },
-                        title = { Text("Confirmação") },
-                        text = {
-                            Text("Deseja mesmo remover do banco?\nEssa ação é irreversível.")
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    book?.let {
-                                        viewModel.deleteBook(it)
-                                        Toast.makeText(
-                                            context,
-                                            "Livro removido!",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        navController.popBackStack("book_list", inclusive = false)
+                        for (i in 1..5) {
+                            Icon(
+                                imageVector = if (i <= rating) Icons.Default.Star else Icons.Outlined.Star,
+                                contentDescription = "Avaliação de $i estrelas",
+                                tint = if (i <= rating) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clickable {
+                                        rating = i
+                                        viewModel.updateBookRating(safeBook.id, i)
+                                        Toast.makeText(context, "Avaliação salva!", Toast.LENGTH_SHORT).show()
                                     }
-                                    showDialog = false
-                                }
-                            ) {
-                                Text("Sim, desejo")
-                            }
-                        },
-                        dismissButton = {
-                            Button(
-                                onClick = { showDialog = false }
-                            ) {
-                                Text("Não")
-                            }
+                            )
                         }
-                    )
+                    }
+
+                    Spacer(modifier = Modifier.height(48.dp)) // espaço extra ao fim da tela
                 }
 
+            }
+
+            // Botão Voltar
+            IconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBackIosNew,
+                    contentDescription = "Voltar",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            // Botão Deletar
+            IconButton(
+                onClick = { showDialog = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remover",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text("Confirmação") },
+                    text = { Text("Deseja mesmo remover do banco?\nEssa ação é irreversível.") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                book?.let {
+                                    viewModel.deleteBook(it)
+                                    Toast.makeText(context, "Livro removido!", Toast.LENGTH_SHORT).show()
+                                    navController.popBackStack("book_list", inclusive = false)
+                                }
+                                showDialog = false
+                            }
+                        ) {
+                            Text("Sim, desejo")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = { showDialog = false }) {
+                            Text("Não")
+                        }
+                    }
+                )
             }
         }
     }
 }
+
 
 
 @Composable
@@ -236,9 +316,6 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = "Bibliotecandre", style = MaterialTheme.typography.headlineMedium)
-//                Button(onClick = { navController.navigate("add_book/0") }) {
-//                    Text("Adicionar Livro")
-//                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -253,20 +330,17 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                 }
             } else {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2), // Exibir 2 colunas
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-
                 ) {
                     items(books) { book ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    navController.navigate(
-                                        "view_book/${book.id}"
-                                    )
+                                    navController.navigate("view_book/${book.id}")
                                 },
                             elevation = CardDefaults.cardElevation(4.dp)
                         ) {
@@ -289,30 +363,35 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                 }
             }
         }
-        FloatingActionButton(
-            onClick = { navController.navigate("scan_isbn") },
+
+        Column(
             modifier = Modifier
-                .padding(16.dp)
-                .padding(bottom=50.dp)
+                .padding(start = 16.dp, bottom = 64.dp)
                 .align(Alignment.BottomStart),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.background
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Scan ISBN")
-        }
-        FloatingActionButton(
-            onClick = { navController.navigate("add_book/0") },
-            modifier = Modifier
-                .padding(16.dp)
-                .padding(bottom=120.dp)
-                .align(Alignment.BottomStart),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.background
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Adicionar livro")
+            FloatingActionButton(
+                onClick = { navController.navigate("add_book/0") },
+                modifier = Modifier.size(48.dp).offset(x = 7.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.background,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Adicionar livro", modifier = Modifier.size(24.dp))
+            }
+            FloatingActionButton(
+                onClick = { navController.navigate("scan_isbn") },
+                modifier = Modifier.size(64.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.background,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.CameraAlt, contentDescription = "Scan ISBN", modifier = Modifier.size(32.dp))
+            }
         }
     }
 }
+
 
 @Composable
 fun ScanISBNScreen(navController: NavController) {
@@ -360,7 +439,7 @@ fun ScanISBNScreen(navController: NavController) {
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
-                
+
 
                 val imageAnalyzer = ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -441,7 +520,7 @@ fun AddBookScreen(
     val context = LocalContext.current
 
     LaunchedEffect(isbn) {
-        if(isbn.isNotBlank()){
+        if (isbn.isNotBlank()) {
             viewModel.searchBook(isbn)
         }
     }
@@ -531,13 +610,22 @@ fun AddBookScreen(
                                 style = MaterialTheme.typography.headlineSmall
                             )
                             book.authors?.forEach { author -> Text(author) }
-                            book.imageLinks?.thumbnail?.let { url ->
-                                AsyncImage(
-                                    model = url.replace("http:", "https:"),
-                                    contentDescription = "Capa do Livro",
-                                    modifier = Modifier
-                                        .width(100.dp)
-                                        .height(150.dp)
+                            if (book.imageLinks?.thumbnail != null) {
+                                book.imageLinks?.thumbnail?.let { url ->
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = "Capa do Livro",
+                                        modifier = Modifier
+                                            .width(100.dp)
+                                            .height(150.dp),
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Book,
+                                    contentDescription = "Ícone de livro",
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
