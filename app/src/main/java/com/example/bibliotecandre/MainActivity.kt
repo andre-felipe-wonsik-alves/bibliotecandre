@@ -5,8 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import android.Manifest
-import android.app.Activity
-import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -18,7 +16,6 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
@@ -33,7 +30,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.runtime.*
@@ -42,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -56,19 +51,18 @@ import androidx.navigation.navArgument
 import com.example.bibliotecandre.view.BookViewModel
 import com.example.bibliotecandre.data.local.BookEntity
 import com.example.bibliotecandre.ui.theme.BibliotecandreTheme
-import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.foundation.Canvas
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 
 @AndroidEntryPoint
@@ -76,6 +70,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             Column(modifier = Modifier.padding(top = 50.dp)) {
                 BibliotecandreTheme {
@@ -132,7 +127,6 @@ fun ViewBookScreen(
     if (book == null) {
         Text("Carregando...")
     } else {
-        Spacer(modifier = Modifier.height(24.dp))
         Box(modifier = Modifier.fillMaxSize()) {
             val circleColor = MaterialTheme.colorScheme.primary
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -157,22 +151,26 @@ fun ViewBookScreen(
                     .navigationBarsPadding(), // padding para barra inferior
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(64.dp))
+
                 book?.let { safeBook ->
 
-                    // Capa com retângulo de fundo
                     safeBook.thumbnail?.let {
                         val fixedThumbnailUrl = it.replace("http:", "https:")
                         Box(
                             modifier = Modifier
-                                .background(color=MaterialTheme.colorScheme.secondary, shape = RoundedCornerShape(5.dp))
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = RoundedCornerShape(1.dp)
+                                )
                                 .padding(4.dp)
-                                .height(350.dp)
+                                .height(300.dp)
                         ) {
                             AsyncImage(
                                 model = fixedThumbnailUrl,
                                 contentDescription = "Capa do Livro",
                                 modifier = Modifier
-                                    .width(250.dp)
+                                    .width(200.dp)
                                     .height(300.dp)
                             )
                         }
@@ -180,10 +178,22 @@ fun ViewBookScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Text(safeBook.title ?: "Sem título", style = MaterialTheme.typography.headlineSmall)
-                    Text(safeBook.authors ?: "Sem autor", style = MaterialTheme.typography.bodyLarge)
-                    Text(safeBook.publisher ?: "Sem editora", style = MaterialTheme.typography.bodyLarge)
-                    Text("${safeBook.publishedDate}", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        safeBook.title ?: "Sem título",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.background
+                    )
+                    Text(
+                        safeBook.authors ?: "Sem autor",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.background
+                    )
+                    Text(
+                        safeBook.publisher ?: "Sem editora",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Text("${safeBook.publishedDate}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.secondary)
                     val descriptionText = safeBook.description ?: "Sem descrição"
                     val wordCount = descriptionText.trim().split("\\s+".toRegex()).size
 
@@ -219,7 +229,6 @@ fun ViewBookScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Text("Avaliação:")
                     Row(
                         modifier = Modifier.padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -228,19 +237,23 @@ fun ViewBookScreen(
                             Icon(
                                 imageVector = if (i <= rating) Icons.Default.Star else Icons.Outlined.Star,
                                 contentDescription = "Avaliação de $i estrelas",
-                                tint = if (i <= rating) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                                tint = if (i <= rating) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clickable {
                                         rating = i
                                         viewModel.updateBookRating(safeBook.id, i)
-                                        Toast.makeText(context, "Avaliação salva!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Avaliação salva!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(48.dp)) // espaço extra ao fim da tela
+                    Spacer(modifier = Modifier.height(24.dp)) // espaço extra ao fim da tela
                 }
 
             }
@@ -269,7 +282,7 @@ fun ViewBookScreen(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Remover",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -283,7 +296,8 @@ fun ViewBookScreen(
                             onClick = {
                                 book?.let {
                                     viewModel.deleteBook(it)
-                                    Toast.makeText(context, "Livro removido!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Livro removido!", Toast.LENGTH_SHORT)
+                                        .show()
                                     navController.popBackStack("book_list", inclusive = false)
                                 }
                                 showDialog = false
@@ -304,21 +318,64 @@ fun ViewBookScreen(
 }
 
 
-
 @Composable
 fun BookListScreen(navController: NavController, viewModel: BookViewModel = hiltViewModel()) {
     val books by viewModel.savedBooks.collectAsState()
+    val gridState = rememberLazyGridState()
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredBooks = books.filter {
+        it.title?.contains(searchQuery, ignoreCase = true) == true ||
+                it.authors?.contains(searchQuery, ignoreCase = true) == true
+    }
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(text = "Bibliotecandre", style = MaterialTheme.typography.headlineMedium)
+                IconButton(onClick = { /* futuras configurações */ }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Configurações")
+                }
             }
 
+            HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f))
             Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = {
+                    Text("Algum específico?", style = MaterialTheme.typography.bodySmall)
+                },
+                textStyle = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(35.dp)
+                    .clip(CircleShape),
+                shape = CircleShape,
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface
+                ),
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Buscar")
+                }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "${books.size} livro${if (books.size != 1) "s" else ""} lido${if (books.size != 1) "s" else ""}",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             viewModel.getAllBooks()
 
             if (books.isEmpty()) {
@@ -329,35 +386,64 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
                     Text("Está vazio por aqui...", style = MaterialTheme.typography.headlineSmall)
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(books) { book ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    navController.navigate("view_book/${book.id}")
-                                },
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                book.thumbnail?.let { url ->
-                                    val fixedThumbnailUrl = url.replace("http:", "https:")
-                                    AsyncImage(
-                                        model = fixedThumbnailUrl,
-                                        contentDescription = "Capa do Livro",
-                                        modifier = Modifier
-                                            .width(250.dp)
-                                            .fillMaxWidth()
-                                            .aspectRatio(0.75f)
-                                            .height(300.dp)
-                                    )
+                Box {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(end = 8.dp),
+                        state = gridState,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(filteredBooks) { book ->
+                            Card(
+                                modifier = Modifier
+                                    .width(100.dp)
+                                    .clickable {
+                                        navController.navigate("view_book/${book.id}")
+                                    },
+                                elevation = CardDefaults.cardElevation(4.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 1f))
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    val thumbnailUrl = book.thumbnail?.replace("http:", "https:")
+
+                                    if (!thumbnailUrl.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = thumbnailUrl,
+                                            contentDescription = "Capa do Livro",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(0.75f)
+                                                .height(300.dp)
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(0.75f)
+                                                .height(300.dp)
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "Sem capa",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                    }
                                 }
+
                             }
+                        }
+
+                        item(span = { GridItemSpan(2) }) {
+                            Spacer(modifier = Modifier.height(50.dp))
                         }
                     }
                 }
@@ -366,13 +452,15 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
 
         Column(
             modifier = Modifier
-                .padding(start = 16.dp, bottom = 64.dp)
-                .align(Alignment.BottomStart),
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 62.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FloatingActionButton(
                 onClick = { navController.navigate("add_book/0") },
-                modifier = Modifier.size(48.dp).offset(x = 7.dp),
+                modifier = Modifier
+                    .size(48.dp)
+                    .offset(x = 7.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.background,
                 shape = CircleShape
@@ -381,7 +469,8 @@ fun BookListScreen(navController: NavController, viewModel: BookViewModel = hilt
             }
             FloatingActionButton(
                 onClick = { navController.navigate("scan_isbn") },
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier
+                    .size(64.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.background,
                 shape = CircleShape
